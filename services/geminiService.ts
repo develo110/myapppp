@@ -2,8 +2,8 @@
 import { GoogleGenAI, Chat, GenerateContentResponse, Modality } from "@google/genai";
 
 const getAiClient = async () => {
-  // Check for Veo/Video requirements if needed, or just standard API key
   // Use process.env.API_KEY as per guidelines
+  // Note: 'process.env.API_KEY' is replaced by Vite define in vite.config.ts
   const apiKey = process.env.API_KEY;
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
@@ -12,9 +12,10 @@ const getAiClient = async () => {
 export const generateChatResponse = async (history: { role: string; content: string }[], lastMessage: string): Promise<string> => {
   const ai = await getAiClient();
   if (!ai) {
+    console.warn("Gemini API Key missing");
     return "I'm disconnected from the galaxy (API Key missing).";
   }
-
+  
   try {
     const chat: Chat = ai.chats.create({
       model: "gemini-2.5-flash",
@@ -63,7 +64,7 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
 export const editImageWithAi = async (imageFile: File, prompt: string): Promise<Blob | null> => {
   const ai = await getAiClient();
   if (!ai) throw new Error("API Key missing");
-
+  
   try {
     const base64Data = await fileToBase64(imageFile);
     
@@ -110,9 +111,10 @@ export const generateVideoFromImage = async (imageFile: File, prompt: string, re
     }
   }
 
-  // Create new client to ensure key is fresh
-  // Use process.env.API_KEY as per guidelines
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); 
+  // Use process.env.API_KEY via vite define
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key missing");
+  const ai = new GoogleGenAI({ apiKey }); 
   
   try {
     const base64Data = await fileToBase64(imageFile);
@@ -139,7 +141,7 @@ export const generateVideoFromImage = async (imageFile: File, prompt: string, re
 
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (videoUri) {
-      const response = await fetch(`${videoUri}&key=${process.env.API_KEY}`);
+      const response = await fetch(`${videoUri}&key=${apiKey}`);
       const blob = await response.blob();
       return blob;
     }

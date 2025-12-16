@@ -10,9 +10,9 @@
  */
 
 // Use environment variables if available, otherwise fall back to demo keys
-const CLOUD_NAME = process.env.VITE_CLOUDINARY_CLOUD_NAME || 'dbhcy15gl';
-const API_KEY = process.env.VITE_CLOUDINARY_API_KEY || '365239848261496';
-const API_SECRET = process.env.VITE_CLOUDINARY_API_SECRET || 'HGVhhjPti0stub_PIGFRQS0lNl4';
+const CLOUD_NAME = (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME || 'dbhcy15gl';
+const API_KEY = (import.meta as any).env?.VITE_CLOUDINARY_API_KEY || '365239848261496';
+const API_SECRET = (import.meta as any).env?.VITE_CLOUDINARY_API_SECRET || 'HGVhhjPti0stub_PIGFRQS0lNl4';
 
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   try {
