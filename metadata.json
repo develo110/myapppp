@@ -1,0 +1,8 @@
+{
+  "name": "myapp_app",
+  "description": "A futuristic, space-themed social media application with AI chat capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
