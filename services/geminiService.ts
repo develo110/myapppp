@@ -1,8 +1,10 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse, Modality } from "@google/genai";
 
 const getAiClient = async () => {
   // Check for Veo/Video requirements if needed, or just standard API key
-  const apiKey = process.env.API_KEY || '';
+  // Use process.env.API_KEY as per guidelines
+  const apiKey = process.env.API_KEY;
   if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 };
@@ -109,6 +111,7 @@ export const generateVideoFromImage = async (imageFile: File, prompt: string, re
   }
 
   // Create new client to ensure key is fresh
+  // Use process.env.API_KEY as per guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); 
   
   try {

@@ -3,14 +3,16 @@
  * CLOUDINARY SERVICE
  * Handles uploading images and videos to Cloudinary.
  * 
- * NOTE: In a production app, the API_SECRET should NEVER be stored in the frontend.
- * You would typically generate the signature on a backend server.
- * This implementation is for demonstration purposes to make the app standalone.
+ * NOTE: In production, set these variables in your Vercel Project Settings:
+ * - VITE_CLOUDINARY_CLOUD_NAME
+ * - VITE_CLOUDINARY_API_KEY
+ * - VITE_CLOUDINARY_API_SECRET
  */
 
-const CLOUD_NAME = 'dbhcy15gl';
-const API_KEY = '365239848261496';
-const API_SECRET = 'HGVhhjPti0stub_PIGFRQS0lNl4';
+// Use environment variables if available, otherwise fall back to demo keys
+const CLOUD_NAME = process.env.VITE_CLOUDINARY_CLOUD_NAME || 'dbhcy15gl';
+const API_KEY = process.env.VITE_CLOUDINARY_API_KEY || '365239848261496';
+const API_SECRET = process.env.VITE_CLOUDINARY_API_SECRET || 'HGVhhjPti0stub_PIGFRQS0lNl4';
 
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   try {
