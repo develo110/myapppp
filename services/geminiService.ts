@@ -1,6 +1,9 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse, Modality } from "@google/genai";
 
+// Fix TypeScript error: Cannot find name 'process'
+declare var process: any;
+
 const getAiClient = async () => {
   // Use process.env.API_KEY as per guidelines
   // Note: 'process.env.API_KEY' is replaced by Vite define in vite.config.ts
