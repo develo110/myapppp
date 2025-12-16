@@ -114,6 +114,18 @@ export const dbGetUser = (userId: string): User | undefined => {
     return safeUser as User;
 };
 
+export const dbSearchUsers = async (query: string): Promise<User[]> => {
+  const users = getCollection<User>(STORAGE_KEYS.USERS);
+  const lowerQuery = query.toLowerCase();
+  
+  return users
+    .filter(u => 
+      u.name.toLowerCase().includes(lowerQuery) || 
+      u.handle.toLowerCase().includes(lowerQuery)
+    )
+    .map(({ password, ...user }) => user as User);
+};
+
 export const dbToggleFollow = async (currentUserId: string, targetUserId: string): Promise<boolean> => {
     const users = getCollection<User>(STORAGE_KEYS.USERS);
     const currentUserIndex = users.findIndex(u => u.id === currentUserId);

@@ -5,7 +5,8 @@ import {
   dbLogin, dbSignup, dbLogout, dbGetCurrentUser, dbUpdateUser,
   dbCreatePost, dbGetPosts, dbToggleLike, dbAddComment,
   dbCreateReel, dbGetReels, dbToggleFollow as dbToggleFollowService,
-  dbCreateNotification, dbGetNotifications, dbMarkNotificationsRead
+  dbCreateNotification, dbGetNotifications, dbMarkNotificationsRead,
+  dbGetUser, dbSearchUsers
 } from '../services/dbService';
 import { uploadToCloudinary } from '../services/cloudinaryService';
 
@@ -41,6 +42,10 @@ interface GlobalContextType {
   commentOnReel: (reelId: string) => void;
   refreshData: () => void;
   markNotificationsRead: () => void;
+
+  // Search & User
+  getUserById: (id: string) => User | undefined;
+  searchUsers: (query: string) => Promise<User[]>;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -301,6 +306,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setNotifications(prev => prev.map(n => ({...n, isRead: true})));
   };
 
+  // --- User Search ---
+  const getUserById = (id: string) => dbGetUser(id);
+  const searchUsers = (query: string) => dbSearchUsers(query);
+
   return (
     <GlobalContext.Provider value={{
       currentUser,
@@ -329,7 +338,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleReelSave,
       commentOnReel,
       refreshData,
-      markNotificationsRead
+      markNotificationsRead,
+      getUserById,
+      searchUsers
     }}>
       {children}
     </GlobalContext.Provider>

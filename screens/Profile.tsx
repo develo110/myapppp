@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, Bell, Repeat, Send, Play, Camera, X, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon, Bell, Repeat, Send, Play, Camera, X, Loader2, UserCheck, UserPlus } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useGlobal } from '../context/GlobalContext';
 import { uploadToCloudinary } from '../services/cloudinaryService';
+import { User } from '../types';
 
 const AnimatedStat = ({ value, label }: { value: number | string, label: string }) => {
   const [animating, setAnimating] = useState(false);
@@ -34,18 +35,54 @@ const AnimatedStat = ({ value, label }: { value: number | string, label: string 
 
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { posts, reels, followingIds, currentUser, updateProfile, notifications } = useGlobal();
+  const { userId } = useParams();
+  const { 
+    posts, 
+    reels, 
+    followingIds, 
+    currentUser, 
+    updateProfile, 
+    notifications,
+    getUserById,
+    toggleFollow,
+    isFollowing 
+  } = useGlobal();
+  
+  const [displayUser, setDisplayUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'video' | 'tagged'>('posts');
   
   // Edit Profile State
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(currentUser.name);
-  const [editBio, setEditBio] = useState(currentUser.bio || '');
+  const [editName, setEditName] = useState('');
+  const [editBio, setEditBio] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const myPosts = posts.filter(p => p.userId === currentUser.id);
-  const myReels = reels.filter(r => r.userId === currentUser.id);
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  useEffect(() => {
+    if (userId && userId !== currentUser.id) {
+      const user = getUserById(userId);
+      setDisplayUser(user || null);
+    } else {
+      setDisplayUser(currentUser);
+    }
+  }, [userId, currentUser, getUserById]);
+
+  // Sync edit state when display user changes (only if it's me)
+  useEffect(() => {
+    if (displayUser && displayUser.id === currentUser.id) {
+        setEditName(displayUser.name);
+        setEditBio(displayUser.bio || '');
+    }
+  }, [displayUser, currentUser.id]);
+
+  if (!displayUser) {
+      return <div className="min-h-screen bg-black flex items-center justify-center text-white">User not found</div>;
+  }
+
+  const isMe = displayUser.id === currentUser.id;
+  const userPosts = posts.filter(p => p.userId === displayUser.id);
+  const userReels = reels.filter(r => r.userId === displayUser.id);
+  const unreadCount = isMe ? notifications.filter(n => !n.isRead).length : 0;
+  const isFollowed = isFollowing(displayUser.id);
 
   const handleUpdateProfile = async () => {
       setUploading(true);
@@ -66,6 +103,10 @@ export const Profile: React.FC = () => {
               setUploading(false);
           }
       }
+  };
+
+  const handleFollowAction = () => {
+     toggleFollow(displayUser.id);
   };
 
   return (
@@ -112,10 +153,12 @@ export const Profile: React.FC = () => {
           <h1 className="text-xl font-bold tracking-widest text-pink-500 md:invisible">ORION</h1>
           <div className="flex gap-4">
             <Send className="transform -rotate-45 hover:text-pink-500 cursor-pointer transition-colors" size={24} />
-            <div className="relative cursor-pointer" onClick={() => navigate('/notifications')}>
-               <Bell size={24} className="hover:text-pink-500 transition-colors" />
-               {unreadCount > 0 && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full border border-[#0f0c29]"></div>}
-            </div>
+            {isMe && (
+                <div className="relative cursor-pointer" onClick={() => navigate('/notifications')}>
+                    <Bell size={24} className="hover:text-pink-500 transition-colors" />
+                    {unreadCount > 0 && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full border border-[#0f0c29]"></div>}
+                </div>
+            )}
             <SettingsIcon size={24} onClick={() => navigate('/settings')} className="cursor-pointer hover:text-pink-500 transition-colors" />
           </div>
         </div>
@@ -125,49 +168,84 @@ export const Profile: React.FC = () => {
           <div className="relative mb-16">
             {/* Cover Image */}
             <div className="h-32 md:h-48 w-full rounded-2xl overflow-hidden group relative bg-gray-800">
-              <img src={currentUser.cover || "https://picsum.photos/800/300?grayscale"} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
-              <label className="absolute bottom-2 right-2 p-2 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
-                  <Camera size={16} />
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} disabled={uploading} />
-              </label>
+              <img src={displayUser.cover || "https://picsum.photos/800/300?grayscale"} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+              {isMe && (
+                <label className="absolute bottom-2 right-2 p-2 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
+                    <Camera size={16} />
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} disabled={uploading} />
+                </label>
+              )}
             </div>
             
             {/* Avatar */}
             <div className="absolute -bottom-10 left-4 p-1 bg-[#0f0c29] rounded-full group">
               <div className="relative w-20 h-20 md:w-24 md:h-24">
-                {uploading ? (
+                {uploading && isMe ? (
                     <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center border-2 border-pink-500">
                         <Loader2 className="animate-spin text-pink-500" />
                     </div>
                 ) : (
-                    <img src={currentUser.avatar} alt="Profile" className="w-full h-full rounded-full object-cover border-2 border-pink-500" />
+                    <img src={displayUser.avatar} alt="Profile" className="w-full h-full rounded-full object-cover border-2 border-pink-500" />
                 )}
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                    <Camera size={20} />
-                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} disabled={uploading} />
-                </label>
+                {isMe && (
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                        <Camera size={20} />
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} disabled={uploading} />
+                    </label>
+                )}
               </div>
             </div>
 
             <div className="absolute bottom-[-30px] right-0 flex gap-2">
-               <button className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><Repeat size={16} /></button>
-               <button 
-                onClick={() => setIsEditing(true)}
-                className="bg-gradient-to-r from-pink-600 to-purple-600 px-6 py-1.5 rounded-full text-sm font-medium shadow-lg shadow-purple-900/50 hover:shadow-purple-900/80 transition-shadow"
-               >
-                   Edit Profile
-               </button>
+               {isMe ? (
+                 <>
+                   <button className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><Repeat size={16} /></button>
+                   <button 
+                    onClick={() => setIsEditing(true)}
+                    className="bg-gradient-to-r from-pink-600 to-purple-600 px-6 py-1.5 rounded-full text-sm font-medium shadow-lg shadow-purple-900/50 hover:shadow-purple-900/80 transition-shadow"
+                   >
+                       Edit Profile
+                   </button>
+                 </>
+               ) : (
+                   <button 
+                    onClick={handleFollowAction}
+                    className={`px-6 py-1.5 rounded-full text-sm font-medium shadow-lg transition-all flex items-center gap-2 ${
+                        isFollowed 
+                        ? 'bg-white/10 border border-white/20 hover:bg-white/20' 
+                        : 'bg-gradient-to-r from-pink-600 to-purple-600 shadow-purple-900/50 hover:shadow-purple-900/80'
+                    }`}
+                   >
+                       {isFollowed ? (
+                           <>
+                             <UserCheck size={16} /> Following
+                           </>
+                       ) : (
+                           <>
+                             <UserPlus size={16} /> Follow
+                           </>
+                       )}
+                   </button>
+               )}
             </div>
           </div>
 
           <div className="mt-2 md:mt-4">
-            <h2 className="text-2xl md:text-3xl font-bold">{currentUser.name}</h2>
-            <p className="text-gray-400 text-sm mt-1 max-w-md">{currentUser.bio || "No bio yet."}</p>
+            <h2 className="text-2xl md:text-3xl font-bold">{displayUser.name}</h2>
+            <p className="text-sm text-pink-400 mb-1">{displayUser.handle}</p>
+            <p className="text-gray-400 text-sm mt-1 max-w-md">{displayUser.bio || "No bio yet."}</p>
             
             <div className="flex gap-8 mt-4">
-              <AnimatedStat value={myPosts.length} label="Posts" />
-              <AnimatedStat value={myReels.length} label="Reels" />
-              <AnimatedStat value={followingIds.size} label="Following" />
+              <AnimatedStat value={userPosts.length} label="Posts" />
+              <AnimatedStat value={userReels.length} label="Reels" />
+              <AnimatedStat 
+                value={isMe ? followingIds.size : displayUser.following.length} 
+                label="Following" 
+              />
+              <AnimatedStat 
+                value={displayUser.followers.length} 
+                label="Followers" 
+              />
             </div>
           </div>
         </div>
@@ -201,14 +279,14 @@ export const Profile: React.FC = () => {
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 p-1 mt-1">
            {activeTab === 'posts' && (
              <>
-               {myPosts.length > 0 ? myPosts.map((post) => (
+               {userPosts.length > 0 ? userPosts.map((post) => (
                  <div key={post.id} className="aspect-square bg-white/5 relative group cursor-pointer overflow-hidden">
                    <img src={post.imageUrl} alt="Post" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors"></div>
                  </div>
                )) : (
                  <div className="col-span-full py-10 text-center text-gray-500">
-                    No posts yet. Start creating!
+                    No posts yet.
                  </div>
                )}
              </>
@@ -216,7 +294,7 @@ export const Profile: React.FC = () => {
 
            {activeTab === 'video' && (
              <>
-               {myReels.length > 0 ? myReels.map((reel) => (
+               {userReels.length > 0 ? userReels.map((reel) => (
                  <div key={reel.id} className="aspect-[9/16] bg-white/5 relative group cursor-pointer overflow-hidden rounded-sm">
                    {reel.isVideo ? (
                        <video src={reel.videoUrl} className="w-full h-full object-cover" muted />

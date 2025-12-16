@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
-import { Search as SearchIcon, X } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { Search as SearchIcon, X, User } from 'lucide-react';
+import { useGlobal } from '../context/GlobalContext';
+import { User as UserType } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 const CATEGORIES = ['All', 'Nebula', 'Planets', 'Stars', 'Black Holes', 'Galaxies'];
 
@@ -19,8 +23,26 @@ const GRID_ITEMS = [
 ];
 
 export const Search: React.FC = () => {
+  const navigate = useNavigate();
+  const { searchUsers } = useGlobal();
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [foundUsers, setFoundUsers] = useState<UserType[]>([]);
+
+  useEffect(() => {
+    const handleSearch = async () => {
+      if (searchQuery.trim().length > 0) {
+        const results = await searchUsers(searchQuery);
+        setFoundUsers(results);
+      } else {
+        setFoundUsers([]);
+      }
+    };
+    
+    // Debounce to prevent too many calls
+    const timeout = setTimeout(handleSearch, 300);
+    return () => clearTimeout(timeout);
+  }, [searchQuery, searchUsers]);
 
   const filteredItems = GRID_ITEMS.filter(item => {
     const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
@@ -40,7 +62,7 @@ export const Search: React.FC = () => {
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input 
             type="text" 
-            placeholder="Search universe (e.g. Nebula)..." 
+            placeholder="Search users or universe..." 
             className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-10 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 transition-colors focus:bg-white/10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -54,6 +76,28 @@ export const Search: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* User Results */}
+        {foundUsers.length > 0 && (
+          <div className="mb-8 animate-in slide-in-from-bottom duration-300">
+             <h2 className="text-white font-semibold mb-3">People</h2>
+             <div className="flex flex-col gap-2">
+                {foundUsers.map(user => (
+                   <div 
+                     key={user.id} 
+                     onClick={() => navigate(`/profile/${user.id}`)}
+                     className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition-colors"
+                   >
+                      <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full object-cover" />
+                      <div>
+                         <p className="font-semibold">{user.name}</p>
+                         <p className="text-sm text-gray-400">{user.handle}</p>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+        )}
 
         {/* Categories / Tags */}
         <div className="mb-8">
@@ -79,7 +123,7 @@ export const Search: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
            <h2 className="text-white font-semibold">
              {activeCategory === 'All' ? 'Discover' : `${activeCategory} Results`}
-             <span className="text-gray-500 text-sm font-normal ml-2">({filteredItems.length})</span>
+             {filteredItems.length > 0 && <span className="text-gray-500 text-sm font-normal ml-2">({filteredItems.length})</span>}
            </h2>
         </div>
         
@@ -96,16 +140,18 @@ export const Search: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-             <SearchIcon size={48} className="mb-4 opacity-20" />
-             <p>No results found for "{searchQuery}" in {activeCategory}.</p>
-             <button 
-               onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
-               className="mt-4 text-pink-500 hover:underline"
-             >
-               Clear filters
-             </button>
-          </div>
+          !foundUsers.length && (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+               <SearchIcon size={48} className="mb-4 opacity-20" />
+               <p>No visual results for "{searchQuery}" in {activeCategory}.</p>
+               <button 
+                 onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
+                 className="mt-4 text-pink-500 hover:underline"
+               >
+                 Clear filters
+               </button>
+            </div>
+          )
         )}
       </div>
     </div>
