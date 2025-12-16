@@ -92,7 +92,8 @@ export const editImageWithAi = async (imageFile: File, prompt: string): Promise<
     });
 
     const part = response.candidates?.[0]?.content?.parts?.[0];
-    if (part && part.inlineData) {
+    // Fix: Explicitly check for part.inlineData.data existence to satisfy TS
+    if (part && part.inlineData && part.inlineData.data) {
       const base64ImageBytes = part.inlineData.data;
       return base64ToBlob(base64ImageBytes, 'image/png');
     }
